@@ -1,0 +1,44 @@
+name: ci
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 6 * * *"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo test --release --no-fail-fast
+      - name: Simulate 20,000 seeds
+        run: cargo run --release --bin raftkv-sim -- --seeds 20000
+
+  chaos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        nodes: [3, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release
+      - name: Chaos test on real processes
+        run: |
+          # A different seed each run widens coverage over time. The seed is
+          # printed in the JSON, so any failure can be rerun with it.
+          SEED=$(( RANDOM * RANDOM ))
+          ./target/release/raftkv-chaos --nodes ${{ matrix.nodes }} --seconds 120 --runs 3 --seed $SEED --dir "$RUNNER_TEMP/chaos"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: chaos-logs-${{ matrix.nodes }}
+          path: ${{ runner.temp }}/chaos

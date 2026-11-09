@@ -1,0 +1,32 @@
+groups:
+  - name: raftkv
+    rules:
+      - alert: RaftkvNoLeader
+        expr: max(raftkv_has_leader) == 0
+        for: 30s
+        labels: { severity: page }
+        annotations:
+          summary: No raftkv node knows a leader; writes are unavailable.
+      - alert: RaftkvNodeDown
+        expr: up{job="raftkv"} == 0
+        for: 1m
+        labels: { severity: page }
+        annotations:
+          summary: A raftkv node is down; the cluster has less failure headroom.
+      - alert: RaftkvLeaderChurn
+        expr: sum(increase(raftkv_became_leader_total[10m])) > 5
+        labels: { severity: warn }
+        annotations:
+          summary: Frequent leader changes; check disk latency and the network.
+      - alert: RaftkvFollowerLagging
+        expr: max(raftkv_commit_index) - min(raftkv_applied_index) > 50000
+        for: 5m
+        labels: { severity: warn }
+        annotations:
+          summary: A replica is falling behind the cluster.
+      - alert: RaftkvSlowFsync
+        expr: rate(raftkv_wal_fsync_micros_total[5m]) / rate(raftkv_wal_fsync_total[5m]) > 20000
+        for: 5m
+        labels: { severity: warn }
+        annotations:
+          summary: Mean WAL fsync is over 20ms; expect high latency and leader churn.

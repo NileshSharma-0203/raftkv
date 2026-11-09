@@ -1,0 +1,47 @@
+[package]
+name = "raftkv"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.89"
+description = "A Raft-replicated, crash-safe key-value store with a chaos-testing harness. Standard library only."
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "raftkv-server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "raftkv-cli"
+path = "src/bin/cli.rs"
+
+[[bin]]
+name = "raftkv-sim"
+path = "src/bin/sim.rs"
+
+[[bin]]
+name = "raftkv-chaos"
+path = "src/bin/chaos.rs"
+
+[[bin]]
+name = "raftkv-bench"
+path = "src/bin/bench.rs"
+
+[features]
+# Lets the server read RAFTKV_BUG so the chaos harness can prove it detects
+# real bugs. Never enabled in a production build.
+fault-injection = []
+
+[profile.release]
+opt-level = 3
+debug = 1
+lto = "thin"
+codegen-units = 4
+# A panicking thread must take the whole node down: a half-alive replica is
+# more dangerous than a dead one.
+panic = "abort"
+
+[profile.test]
+opt-level = 2

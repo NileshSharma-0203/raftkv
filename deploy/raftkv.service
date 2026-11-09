@@ -1,0 +1,43 @@
+# /etc/systemd/system/raftkv.service
+# Put per-host settings in /etc/raftkv/raftkv.env:
+#   RAFTKV_ID=1
+#   RAFTKV_PEERS=2=10.0.0.2:7000,3=10.0.0.3:7000
+#   RAFTKV_PEER_LISTEN=10.0.0.1:7000
+#   RAFTKV_CLIENT_LISTEN=10.0.0.1:7100
+#   RAFTKV_METRICS_LISTEN=10.0.0.1:9100
+
+[Unit]
+Description=raftkv replicated key-value store
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=raftkv
+Group=raftkv
+EnvironmentFile=/etc/raftkv/raftkv.env
+ExecStart=/usr/local/bin/raftkv-server \
+  --id ${RAFTKV_ID} \
+  --cluster-id 1 \
+  --data-dir /var/lib/raftkv \
+  --peer-listen ${RAFTKV_PEER_LISTEN} \
+  --client-listen ${RAFTKV_CLIENT_LISTEN} \
+  --metrics-listen ${RAFTKV_METRICS_LISTEN} \
+  --peers ${RAFTKV_PEERS}
+# SIGTERM hands off leadership, so rolling restarts cause almost no downtime.
+KillSignal=SIGTERM
+TimeoutStopSec=15
+Restart=on-failure
+RestartSec=2
+# Exit code 1 means recovery refused the data directory. SIGABRT means a disk
+# failure or a detected safety violation. Restarting cannot fix either, and an
+# operator needs to look.
+RestartPreventExitStatus=1 SIGABRT
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/raftkv
+
+[Install]
+WantedBy=multi-user.target

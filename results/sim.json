@@ -1,0 +1,1 @@
+{"seeds":100000,"failing_seeds":0,"first_failing_seed":null,"violations_by_kind":{},"acked_writes":11630346,"indeterminate_writes":119399,"ok_reads":4977505,"crashes":2870055,"crashes_before_fsync":1808898,"partitions":1039903,"leaders_elected":1055245,"snapshots_installed":54623,"log_truncations":59812,"messages":885562746,"elapsed_seconds":210.6}
